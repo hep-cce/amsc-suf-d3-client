@@ -1,51 +1,169 @@
-# Description: This script is used to run the perf_analyzer tool for the traccc-aaS model.
-
-# Author: Haoran Zhao
-# Edits: Miles Cochran-Branson
-# Date: 2024-07-19
-
 #!/bin/bash
+
+
 uname -a
 
 # Default configurations
-n_instance_per_gpu=${1:-1}
-n_gpus=${2:-1}
-output_csv_name=${3:-"perf_analyzer"}
-_measurement_interval=${4:-10000}
-output_dir=${5:-"data/traccc_g200_v26_10event_v1p3/"}
-concurrency_start=${6:-1}
-concurrency_end=${7:-8}
-concurrency_step=${8:-1}
-input_data=${9:-"data/perf_data_itk_10events.json"}
-remote_server=${10:-"true"}
-max_attempts=5
+DEFAULT_N_INSTANCE_PER_GPU=1
+DEFAULT_N_GPUS=1
+DEFAULT_OUTPUT_CSV_NAME="perf_analyzer"
+DEFAULT_MEASUREMENT_INTERVAL=120000
+DEFAULT_OUTPUT_DIR="data/traccc_g200_v26_10event_v1p3/"
+DEFAULT_CONCURRENCY_START=1
+DEFAULT_CONCURRENCY_END=8
+DEFAULT_CONCURRENCY_STEP=1
+DEFAULT_INPUT_DATA="data/perf_data_itk_10events.json"
+DEFAULT_REMOTE_SERVER="true"
+DEFAULT_MAX_ATTEMPTS=5
+
+n_instance_per_gpu=${DEFAULT_N_INSTANCE_PER_GPU}
+n_gpus=${DEFAULT_N_GPUS}
+output_csv_name=${DEFAULT_OUTPUT_CSV_NAME}
+_measurement_interval=${DEFAULT_MEASUREMENT_INTERVAL}
+output_dir=${DEFAULT_OUTPUT_DIR}
+concurrency_start=${DEFAULT_CONCURRENCY_START}
+concurrency_end=${DEFAULT_CONCURRENCY_END}
+concurrency_step=${DEFAULT_CONCURRENCY_STEP}
+input_data=${DEFAULT_INPUT_DATA}
+remote_server=${DEFAULT_REMOTE_SERVER}
+max_attempts=${DEFAULT_MAX_ATTEMPTS}
 
 # Display help information
 help_function() {
-    echo "Usage: $0 [n_instance_per_gpu] [n_gpus] [output_csv_name] [measurement_interval] [output_dir] [concurrency_end] [concurrency_step]"
+    echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "n_instance_per_gpu:     Number of instances per GPU (default: 1)"
-    echo "n_gpus:                 Number of GPUs (default: 1)"
-    echo "output_csv_name:        Base name for the output CSV files (default: 'perf_analyzer')"
-    echo "measurement_interval:   Initial measurement interval in milliseconds (default: 120000)"
-    echo "output_dir:             Directory to store the output CSV files (default: '/workspace/evaluate/slurm/')"
-    echo "concurrency_end:        End value for concurrency range (default: 16)"
-    echo "concurrency_step:       Step value for concurrency range (default: 1)"
+    echo "Options:"
+    echo "  -n, --n-instance-per-gpu <int> Number of instances per GPU (default: ${DEFAULT_N_INSTANCE_PER_GPU})"
+    echo "  -g, --n-gpus <int>             Number of GPUs (default: ${DEFAULT_N_GPUS})"
+    echo "  -c, --output-csv-name <name>   Base name for output CSV files (default: ${DEFAULT_OUTPUT_CSV_NAME})"
+    echo "  -m, --measurement-interval <ms> Initial measurement interval in milliseconds (default: ${DEFAULT_MEASUREMENT_INTERVAL})"
+    echo "  -o, --output-dir <path>        Directory to store output CSV files (default: ${DEFAULT_OUTPUT_DIR})"
+    echo "  -s, --concurrency-start <int>  Start value for concurrency range (default: ${DEFAULT_CONCURRENCY_START})"
+    echo "  -e, --concurrency-end <int>    End value for concurrency range (default: ${DEFAULT_CONCURRENCY_END})"
+    echo "  -p, --concurrency-step <int>   Step value for concurrency range (default: ${DEFAULT_CONCURRENCY_STEP})"
+    echo "  -i, --input-data <path>        Input JSON for perf_analyzer (default: ${DEFAULT_INPUT_DATA})"
+    echo "  -r, --remote-server <bool>     Skip readiness checks when true (default: ${DEFAULT_REMOTE_SERVER})"
+    echo "  -a, --max-attempts <int>       Number of retries for CSV generation (default: ${DEFAULT_MAX_ATTEMPTS})"
+    echo "  -h, --help                    Show this help and exit"
+    echo ""
+    echo "Backward-compatible positional args are still accepted in this order:"
+    echo "  n_instance_per_gpu n_gpus output_csv_name measurement_interval output_dir concurrency_start concurrency_end concurrency_step input_data remote_server"
 }
 
-# If help is requested, display help and exit
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    help_function
-    exit 0
+require_option_value() {
+    local option_name=$1
+    local option_value=$2
+
+    if [[ -z "${option_value}" || "${option_value}" == -* ]]; then
+        echo "Missing value for option: ${option_name}" >&2
+        echo "Use --help for usage details." >&2
+        exit 1
+    fi
+}
+
+# Parse command-line options (supports both named options and legacy positional args)
+positional_args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            help_function
+            exit 0
+            ;;
+        -n|--n-instance-per-gpu)
+            require_option_value "$1" "$2"
+            n_instance_per_gpu="$2"
+            shift 2
+            ;;
+        -g|--n-gpus)
+            require_option_value "$1" "$2"
+            n_gpus="$2"
+            shift 2
+            ;;
+        -c|--output-csv-name)
+            require_option_value "$1" "$2"
+            output_csv_name="$2"
+            shift 2
+            ;;
+        -m|--measurement-interval)
+            require_option_value "$1" "$2"
+            _measurement_interval="$2"
+            shift 2
+            ;;
+        -o|--output-dir)
+            require_option_value "$1" "$2"
+            output_dir="$2"
+            shift 2
+            ;;
+        -s|--concurrency-start)
+            require_option_value "$1" "$2"
+            concurrency_start="$2"
+            shift 2
+            ;;
+        -e|--concurrency-end)
+            require_option_value "$1" "$2"
+            concurrency_end="$2"
+            shift 2
+            ;;
+        -p|--concurrency-step)
+            require_option_value "$1" "$2"
+            concurrency_step="$2"
+            shift 2
+            ;;
+        -i|--input-data)
+            require_option_value "$1" "$2"
+            input_data="$2"
+            shift 2
+            ;;
+        -r|--remote-server)
+            require_option_value "$1" "$2"
+            remote_server="$2"
+            shift 2
+            ;;
+        -a|--max-attempts)
+            require_option_value "$1" "$2"
+            max_attempts="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            while [[ $# -gt 0 ]]; do
+                positional_args+=("$1")
+                shift
+            done
+            ;;
+        -* )
+            echo "Unknown option: $1" >&2
+            echo "Use --help for usage details." >&2
+            exit 1
+            ;;
+        *)
+            positional_args+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Backward-compatible positional argument parsing
+if [[ ${#positional_args[@]} -gt 0 ]]; then
+    n_instance_per_gpu=${positional_args[0]:-${n_instance_per_gpu}}
+    n_gpus=${positional_args[1]:-${n_gpus}}
+    output_csv_name=${positional_args[2]:-${output_csv_name}}
+    _measurement_interval=${positional_args[3]:-${_measurement_interval}}
+    output_dir=${positional_args[4]:-${output_dir}}
+    concurrency_start=${positional_args[5]:-${concurrency_start}}
+    concurrency_end=${positional_args[6]:-${concurrency_end}}
+    concurrency_step=${positional_args[7]:-${concurrency_step}}
+    input_data=${positional_args[8]:-${input_data}}
+    remote_server=${positional_args[9]:-${remote_server}}
 fi
 
 
 # Update model repository configuration
 output_dir=$output_dir/${n_instance_per_gpu}insts_${n_gpus}gpus
 
-if [ ! -d $output_dir ];
+if [ ! -d "$output_dir" ];
 then
-    mkdir -p $output_dir
+    mkdir -p "$output_dir"
 fi
 
 # mkdir -p $output_dir
@@ -99,14 +217,11 @@ check_server_ready
 run_perf_analyzer() {
     local mode=$1  # sync or async
     local processor=$2 # cpu or gpu
-    local output_csv="${output_dir}/${processor}_${n_instance_per_gpu}instance_${mode}.csv"
+    local output_csv="${output_dir}/${output_csv_name}_${processor}_${n_instance_per_gpu}instance_${mode}.csv"
     local attempt=0
     local measurement_interval=${_measurement_interval}
     local mode_flag=""
-    local concurrency_range=$((n_instance_per_gpu + 3))
-    local concurrency_step=1
-    local concurrency_start=$n_instance_per_gpu
-    echo "Concurrency Range: $concurrency_start:$concurrency_range:$concurrency_step"
+    echo "Concurrency Range: ${concurrency_start}:${concurrency_end}:${concurrency_step}"
 
 
     # Set the mode flag based on sync or async
@@ -122,7 +237,7 @@ run_perf_analyzer() {
           -u ${HOST_IP}:8001 \
           --input-data $input_data \
           --measurement-interval ${measurement_interval} $mode_flag \
-          --concurrency-range $concurrency_start:$concurrency_range:$concurrency_step \
+          --concurrency-range ${concurrency_start}:${concurrency_end}:${concurrency_step} \
           -f ${output_csv} -r 30 --collect-metrics --verbose-csv --percentile=95 --metrics-interval=250 -b 1
 
         # If the file isn't generated, double the measurement_interval and retry
