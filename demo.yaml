@@ -2,7 +2,7 @@ client_data:
   - name: "ATLAS_GNN4ITK/DoubleMetricLearning"
     format: "json"
     model: "DoubleMetricLearning"
-    path: "/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/ATLAS_GNN4ITK/DoubleMetricLearning"
+    path: "/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/gnn4itk_dml_10evts.json"
   - name: "ATLAS_DAOD/BTagging_network_8085e6c5717c"
     format: "json"
     model: "BTagging_network_8085e6c5717c"
