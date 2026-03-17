@@ -6,7 +6,6 @@ HOST=localhost
 MODEL=DoubleMetricLearning
 INPUT=data/perf_data_itk_10events.json
 OUTPUT_DIR=data/traccc_g200_v26_10event_v1p3
-OUTPUT_PREFIX=perf_analyzer
 RANGE=1:8:1
 MODE=sync
 INSTANCES=1
@@ -45,7 +44,6 @@ while [[ $# -gt 0 ]]; do
         --model) MODEL=$2; shift 2 ;;
         --input) INPUT=$2; shift 2 ;;
         --output-dir) OUTPUT_DIR=$2; shift 2 ;;
-        --output-prefix) OUTPUT_PREFIX=$2; shift 2 ;;
         --range) RANGE=$2; shift 2 ;;
         --mode) MODE=$2; shift 2 ;;
         --instances) INSTANCES=$2; shift 2 ;;
@@ -81,7 +79,7 @@ warmup() {
 run_mode() {
     local mode=$1
     local flag=
-    local csv="${RUN_DIR}/${OUTPUT_PREFIX}_${mode}.csv"
+    local csv="${RUN_DIR}/${mode}.csv"
     local measurement_ms=${MEASUREMENT_MS}
     local attempt
 
