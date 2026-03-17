@@ -9,9 +9,10 @@ The benchmarking is performed with `perf_analyzer`.
 ./run_perf_analyzer.sh --host nid008273 \
   --model DoubleMetricLearning \
   --input /global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/gnn4itk_dml_10evts.json \
-  --output-dir results/perf_analyzer/gnn4itk \
+  --output-dir benchmark_results/gnn4itk \
   --range 1:4:1 \
-  --instances 2 --gpus 1 \
+  --instances 2 \
+  --gpus 1 \
   --measurement-ms 240000
 ```
 
