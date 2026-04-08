@@ -1,0 +1,10 @@
+[project]
+name = "amsc-suf-d3-client"
+version = "0.1.0"
+description = "Client code for D3 Demo"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "perf-analyzer>=2.59.1",
+    "tqdm>=4.67.3",
+]
