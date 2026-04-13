@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Merge JSON data from multiple files into a single file for perf_analyzer input."""
 
+import sys
 import json
 import glob
 import tqdm
@@ -19,19 +20,27 @@ def main(input_dir, output_file):
     print(f"Found {num_files} JSON files to merge.")
 
     # Read and merge data from each JSON file
+    num_saved_files = 0
     for json_file in tqdm.tqdm(json_files, desc="Merging JSON files"):
         with open(json_file, 'r') as f:
-            data = json.loads(f.read())
+            try:
+                data = json.loads(f.read())
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON from {json_file}: {e}")
+                print("Error message:", e.msg)
+                continue
             merged_data["data"].append(data)
+            num_saved_files += 1
 
     # Write the merged data to a new JSON file
-    # add f"{num_files}evts" to the output file name.
-    output_file = output_file.replace(".json", f"_{num_files}evts.json")
+    # add f"{num_saved_files}evts" to the output file name.
+    output_file = output_file.replace(".json", f"_{num_saved_files}evts.json")
 
     with open(output_file, 'w') as f:
         json.dump(merged_data, f, indent=2)
 
-    print(f"Merged {num_files} files into {output_file}")
+    print(f"Merged {num_saved_files} files into {output_file}")
+    print(f"Skipped {num_files - num_saved_files} files due to JSON decoding errors.")
 
 
 if __name__ == "__main__":
