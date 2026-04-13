@@ -16,6 +16,38 @@ The benchmarking is performed with `perf_analyzer`.
   --measurement-ms 240000
 ```
 
+%%% --host triton-cluster-svc.ml4phys.com --port 443\
+
+### Nugraph2
+
+```bash
+./run_perf_analyzer.sh \
+  --model nugraph2 --host nid001257 \
+  --input /global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/microbone_nugraph2_100evts.json \
+  --output-dir benchmark_results/nugraph2_v1 \
+  --range 1:4:1 \
+  --instances 1 \
+  --gpus 1 \
+  --measurement-ms 240000
+```
+
+### ATLAS DAOD
+`/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/ATLAS_DAOD/BTagging_network_8085e6c5717c/request_1.json`
+`/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/daod_BTagging_network_8085e6c5717c_31080evts.json`
+`/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json`
+```bash
+IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/daod_input.json"
+IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json"
+./run_perf_analyzer.sh \
+  --model BTagging_network_8085e6c5717c --host nid004255 \
+  --input ${IN_FILE} \
+  --output-dir benchmark_results/daod_BTagging_8085e6c5717c_v1 \
+  --range 1:64:2 \
+  --instances 1 \
+  --gpus 0 \
+  --measurement-ms 2400000
+```
+
 ## Evaluation
 
 ### ATLAS GNN4ITk
