@@ -39,11 +39,11 @@ The benchmarking is performed with `perf_analyzer`.
 IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/daod_input.json"
 IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json"
 ./run_perf_analyzer.sh \
-  --model BTagging_network_8085e6c5717c --host nid004255 \
+  --model BTagging_network_8085e6c5717c --host nid004199 \
   --input ${IN_FILE} \
   --output-dir benchmark_results/daod_BTagging_8085e6c5717c_v1 \
   --range 1:64:2 \
-  --instances 1 \
+  --instances 8 \
   --gpus 0 \
   --measurement-ms 2400000
 ```

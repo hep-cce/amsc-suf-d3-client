@@ -93,7 +93,7 @@ warmup() {
         -i grpc \
         -u "${HOST}:${PORT}" \
         --concurrency-range "${WARMUP}:${WARMUP}:1" \
-        --measurement-interval "${MEASUREMENT_MS}" \
+        --measurement-interval "1000" \
         -b 1 >/dev/null
 }
 
@@ -124,7 +124,7 @@ run_mode() {
             --collect-metrics \
             --verbose-csv \
             --percentile=95 \
-            --metrics-interval=250 \
+            --metrics-interval=500 \
             -b 1 || true
 
         [[ -s "${csv}" ]] && return 0
