@@ -4,6 +4,7 @@ set -euo pipefail
 
 HOST=localhost
 PORT=8001
+HTTP_PORT=8000
 MODEL=DoubleMetricLearning
 INPUT=data/perf_data_itk_10events.json
 OUTPUT_DIR=data/traccc_g200_v26_10event_v1p3
@@ -12,7 +13,7 @@ MODE=sync
 INSTANCES=1
 GPUS=1
 MEASUREMENT_MS=120000
-ATTEMPTS=5
+ATTEMPTS=1
 WARMUP=2
 USE_SSL=0
 
@@ -113,20 +114,23 @@ run_mode() {
     for ((attempt = 1; attempt <= ATTEMPTS; attempt++)); do
         uv run perf_analyzer \
             -m "${MODEL}" \
-            -i grpc \
-            -u "${HOST}:${PORT}" \
-            --input-data "${INPUT}" \
+            -i http \
+            -u "${HOST}:${HTTP_PORT}" \
+            --input-data ${INPUT} \
+            --measurement-mode "time_windows" \
             --measurement-interval "${measurement_ms}" \
+            --stability-percentage 30 \
             "${flag}" \
             --concurrency-range "${RANGE}" \
             -f "${csv}" \
-            -r 30 \
-            --collect-metrics \
+            --max-trials 10 \
             --verbose-csv \
-            --percentile=95 \
-            --metrics-interval=500 \
             -b 1 || true
-
+            # --collect-metrics \
+            # --metrics-interval=500 \
+            # --percentile=85 \
+            # --measurement-mode "count_windows" \
+            # --measurement-request-count "${measurement_ms}" \
         [[ -s "${csv}" ]] && return 0
         measurement_ms=$((measurement_ms * 2))
     done
@@ -138,10 +142,11 @@ run_mode() {
 wait_for_ready
 echo "Server is ready. Starting benchmark..."
 
-if [[ ${SKIP_WARMUP} -eq 0 ]]; then
-    warmup
-fi
+# if [[ ${SKIP_WARMUP} -eq 0 ]]; then
+#     warmup
+# fi
 
+# echo "Done with warmup. Running benchmarks..."
 case "${MODE}" in
     sync|async) run_mode "${MODE}" ;;
     both)
