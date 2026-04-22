@@ -27,13 +27,25 @@ def parse_args() -> argparse.Namespace:
         default="Inference/sec vs Concurrency",
         help="Plot title.",
     )
+    parser.add_argument(
+        "-m", "--model", help="Model name to include in the legend (optional).",
+        default=None,
+    )
+    parser.add_argument(
+        "-c", "--column", default="Inferences/Second",
+        help="CSV column to plot on the y-axis (default: 'Inferences/Second')."
+    )
+    parser.add_argument(
+        "-l", "--label", default=None,
+        help="Y-axis label (default: inferred from column name)."
+    )
     return parser.parse_args()
 
 
-def load_data(csv_path: Path) -> Tuple[List[int], List[float]]:
+def load_data(csv_path: Path, column_name: str) -> Tuple[List[int], List[float]]:
     with csv_path.open(newline="") as handle:
         reader = csv.DictReader(handle)
-        required_columns = {"Concurrency", "Inferences/Second"}
+        required_columns = {"Concurrency", column_name}
         missing = required_columns - set(reader.fieldnames or [])
         if missing:
             missing_str = ", ".join(sorted(missing))
@@ -42,7 +54,7 @@ def load_data(csv_path: Path) -> Tuple[List[int], List[float]]:
         rows = []
         for row in reader:
             concurrency = int(row["Concurrency"])
-            inferences_per_second = float(row["Inferences/Second"])
+            inferences_per_second = float(row[column_name])
             rows.append((concurrency, inferences_per_second))
 
     if not rows:
@@ -59,6 +71,9 @@ def plot_data(
     throughput_values: List[float],
     output_path: Path,
     title: str,
+    column_name: str,
+    column_label: str | None = None,
+    model_name: str | None = None,
 ) -> None:
     try:
         import matplotlib.pyplot as plt
@@ -76,7 +91,7 @@ def plot_data(
     ax.plot(
         concurrency_values,
         throughput_values,
-        marker="o",
+        "-ko",
         linewidth=2,
         markersize=5,
     )
@@ -87,9 +102,19 @@ def plot_data(
         zorder=3,
         label=f"peak: {peak_throughput:.2f} @ {peak_concurrency}",
     )
+    if model_name:
+        ax.text(
+            0.95, 0.05,
+            model_name,
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.5),
+        )
     ax.set_title(title)
     ax.set_xlabel("Concurrency")
-    ax.set_ylabel("Inferences / second")
+    ax.set_ylabel(column_label or column_name)
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend()
     fig.tight_layout()
@@ -104,19 +129,20 @@ def main() -> int:
         print(f"CSV file not found: {csv_path}", file=sys.stderr)
         return 1
 
+    y_value_label = args.column.lower().replace("/", "_per_").replace(" ", "_")
     output_path = (
         Path(args.output)
         if args.output
-        else csv_path.with_name(f"{csv_path.stem}_inference_vs_concurrency.png")
+        else csv_path.with_name(f"{csv_path.stem}_{y_value_label}.png")
     )
 
     try:
-        concurrency_values, throughput_values = load_data(csv_path)
+        concurrency_values, throughput_values = load_data(csv_path, args.column)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
-    plot_data(concurrency_values, throughput_values, output_path, args.title)
+    plot_data(concurrency_values, throughput_values, output_path, args.title, args.column, args.label, args.model)
     print(f"Wrote plot to {output_path}")
     return 0
 

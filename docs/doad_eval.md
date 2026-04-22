@@ -1,19 +1,37 @@
+
+## Instructions
 The model: `BTagging_network_8085e6c5717c`
 The input data: `/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json`
 Benchmark results: `/pscratch/sd/x/xju/code/amsc-suf-d3-client/benchmark_results`
+
+### Server setup
+```bash
+git clone https://github.com/hep-cce/amsc-suf-d3-server.git
+
+srun --job-name=TritonTest -C cpu -N 1 --exclusive -t 4:00:00 -A m3443 \
+  -q interactive /bin/bash -c "./scripts/start-tritonserver.sh -o triton_ready.txt \
+  -f staged_models "
+```
+
+### Client setup
 The command:
 ```bash
 IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json"
 ./run_perf_analyzer.sh \
-  --model BTagging_network_8085e6c5717c --host nid004208 \
+  --model BTagging_network_8085e6c5717c --host nid004196 \
   --input ${IN_FILE} \
-  --output-dir benchmark_results/daod_BTagging_8085e6c5717c_x \
-  --range 2:20:2 \
-  --instances 8 \
+  --output-dir benchmark_results/daod_BTagging_8085e6c5717c_v10 \
+  --range 2:128:2 \
+  --instances 64 \
   --gpus 0 \
-  --measurement-ms 2000
+  --measurement-ms 20000
 ```
 
+Make the scaling plot.
+```bash
+python3 scripts/plot_inference_vs_concurrency.py \
+  benchmark_results/daod_BTagging_8085e6c5717c_v10/64insts_0gpus/sync.csv --title "64 model instances: BTagging_network_8085e6c5717c"
+```
 
 The plan:
 v1: using random input data, 8 model instances on one CPU node, concurrency: 2:12:2,
@@ -267,3 +285,5 @@ Concurrency: 124, throughput: 3412.29 infer/sec, latency 36298 usec
 Concurrency: 126, throughput: 3470.49 infer/sec, latency 36250 usec
 Concurrency: 128, throughput: 3441.74 infer/sec, latency 37149 usec
 ```
+
+v11: same as v10, but run `perf_analyzer` with `--measurement-ms 20000` to check if we can get stable throughput numbers with longer measurement time.

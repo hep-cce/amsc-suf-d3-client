@@ -32,22 +32,8 @@ The benchmarking is performed with `perf_analyzer`.
 ```
 
 ### ATLAS DAOD data
-```bash
-IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json"
-./run_perf_analyzer.sh \
-  --model BTagging_network_8085e6c5717c --host nid004208 \
-  --input ${IN_FILE} \
-  --output-dir benchmark_results/daod_BTagging_8085e6c5717c_v4 \
-  --range 2:20:2 \
-  --instances 8 \
-  --gpus 0 \
-  --measurement-ms 2000
-```
-Make the scaling plot.
-```bash
-python3 scripts/plot_inference_vs_concurrency.py \
-  benchmark_results/daod_BTagging_8085e6c5717c_v10/8insts_0gpus/sync.csv --title "64 model instances: BTagging_network_8085e6c5717c"
-```
+
+See [DAOD Evaluation](docs/doad_eval.md) for details on the evaluation setup.
 
 
 ## Evaluation
