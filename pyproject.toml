@@ -5,6 +5,7 @@ description = "Client code for D3 Demo"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "matplotlib>=3.10.8",
     "perf-analyzer>=2.59.1",
     "tqdm>=4.67.3",
 ]

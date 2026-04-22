@@ -1,6 +1,18 @@
 The model: `BTagging_network_8085e6c5717c`
 The input data: `/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json`
 Benchmark results: `/pscratch/sd/x/xju/code/amsc-suf-d3-client/benchmark_results`
+The command:
+```bash
+IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json"
+./run_perf_analyzer.sh \
+  --model BTagging_network_8085e6c5717c --host nid004208 \
+  --input ${IN_FILE} \
+  --output-dir benchmark_results/daod_BTagging_8085e6c5717c_x \
+  --range 2:20:2 \
+  --instances 8 \
+  --gpus 0 \
+  --measurement-ms 2000
+```
 
 
 The plan:
