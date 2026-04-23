@@ -39,6 +39,10 @@ def parse_args() -> argparse.Namespace:
         "-l", "--label", default=None,
         help="Y-axis label (default: inferred from column name)."
     )
+    parser.add_argument(
+        "-n", "--num-instances", type=int, default=None,
+        help="Number of model instances to indicate with a vertical dashed line (optional)."
+    )
     return parser.parse_args()
 
 
@@ -72,6 +76,7 @@ def plot_data(
     output_path: Path,
     title: str,
     column_name: str,
+    num_instances: int | None = None,
     column_label: str | None = None,
     model_name: str | None = None,
 ) -> None:
@@ -112,10 +117,21 @@ def plot_data(
             horizontalalignment="right",
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.5),
         )
+    if num_instances is not None:
+        ax.vlines(
+            num_instances,
+            ax.get_ylim()[0],
+            ax.get_ylim()[1],
+            colors="tab:grey",
+            linestyles="dashed",
+            linewidth=2,
+            # label=f"{num_instances} model instances",
+        )
     ax.set_title(title)
     ax.set_xlabel("Concurrency")
     ax.set_ylabel(column_label or column_name)
     ax.grid(True, linestyle="--", alpha=0.4)
+    ax.set_ylim(bottom=0)
     ax.legend()
     fig.tight_layout()
     fig.savefig(output_path, dpi=200)
@@ -142,7 +158,8 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    plot_data(concurrency_values, throughput_values, output_path, args.title, args.column, args.label, args.model)
+    plot_data(concurrency_values, throughput_values, output_path, args.title,
+              args.column, args.num_instances, args.label, args.model)
     print(f"Wrote plot to {output_path}")
     return 0
 
