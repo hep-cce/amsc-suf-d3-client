@@ -30,11 +30,30 @@ IN_FILE="/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_B
 Make the scaling plot.
 ```bash
 python3 scripts/plot_inference_vs_concurrency.py \
-  benchmark_results/daod_BTagging_8085e6c5717c_v10/64insts_0gpus/sync.csv --title "64 model instances: BTagging_network_8085e6c5717c"
+  benchmark_results/daod_BTagging_8085e6c5717c_v10/64insts_0gpus/sync.csv --title "64 model instances at Triton Server" --column "Inferences/Second" --label "Throughput (infer/sec)" \
+  -m "BTagging_network_8085e6c5717c"
 ```
 
-The plan:
-v1: using random input data, 8 model instances on one CPU node, concurrency: 2:12:2,
+#### Alternative, use `perf_analyzer` directly:
+```bash
+MODEL=BTagging_network_8085e6c5717c
+TRITON_HOST=nid005600
+IN_FILE=/global/homes/x/xju/m3443/data/AmSC_SUF_D3/BenchmarkData/cleaned_daod_BTagging_network_8085e6c5717c_31080evts.json
+OUT_CSV_FILE=benchmark_results/daod_BTagging_8085e6c5717c_v10/8insts_0gpus/sync_rate_request.csv
+perf_analyzer -m ${MODEL} \
+  -u ${TRITON_HOST}:8000 \
+  -i http \
+  --input-data ${IN_FILE} \
+  --request-rate-range 5:125:5 \
+  -b 1 \
+  -f ${OUT_CSV_FILE} \
+  --max-trials 10 --verbose-csv \
+  --measurement-interval 20000
+```
+
+## The plan
+
+### v1: using random input data, 8 model instances on one CPU node, concurrency: 2:12:2,
 Results:
 ```text
 With http protocol,
@@ -61,7 +80,7 @@ Concurrency: 16, throughput: 1164.08 infer/sec, latency 13721 usec
 Concurrency: 18, throughput: 1228.36 infer/sec, latency 14630 usec
 Concurrency: 20, throughput: 1177.8 infer/sec, latency 16950 usec
 ```
-v2: using real input data, grpc, 8 model instances on one CPU node, concurrency: 2:20:2,
+### v2: using real input data, grpc, 8 model instances on one CPU node, concurrency: 2:20:2,
 ```bash
             --input-data random \
             --shape "track_features:2,24" \
@@ -80,7 +99,7 @@ Concurrency: 16, throughput: 687.359 infer/sec, latency 23242 usec
 Concurrency: 18, throughput: 695.974 infer/sec, latency 25800 usec
 Concurrency: 20, throughput: 727.229 infer/sec, latency 27451 usec
 ```
-v3: using real input data, http, 8 model instances
+### v3: using real input data, http, 8 model instances
 ```text
 Concurrency: 2, throughput: 167.262 infer/sec, latency 11895 usec
 Concurrency: 4, throughput: 342.013 infer/sec, latency 11640 usec
@@ -93,7 +112,7 @@ Concurrency: 16, throughput: 731.329 infer/sec, latency 21824 usec
 Concurrency: 18, throughput: 740.013 infer/sec, latency 24275 usec
 Concurrency: 20, throughput: 740.487 infer/sec, latency 26959 usec
 ```
-v4: same client config as v3, but remove the following in the server side:
+### v4: same client config as v3, but remove the following in the server side:
 ```text
 parameters {
   key: "enable_mem_arena"
@@ -135,7 +154,7 @@ Concurrency: 18, throughput: 171.233 infer/sec, latency 104774 usec
 Concurrency: 20, throughput: 173.724 infer/sec, latency 114672 usec
 ```
 
-v5: same client config as v3, same server config as v4. Now I add the following back to check the impact of the memory arena:
+### v5: same client config as v3, same server config as v4. Now I add the following back to check the impact of the memory arena:
 ```text
 parameters {
   key: "enable_mem_arena"
@@ -158,7 +177,7 @@ Concurrency: 18, throughput: 176.893 infer/sec, latency 101682 usec
 Concurrency: 20, throughput: 173.31 infer/sec, latency 115340 usec
 ```
 
-v6: same as v5, but add the following to the server launch command to check the impact of the global thread pool:
+### v6: same as v5, but add the following to the server launch command to check the impact of the global thread pool:
 ```bash
         --backend-config=onnxruntime,enable-global-threadpool=1 \
 ```
@@ -176,7 +195,7 @@ Concurrency: 18, throughput: 833.101 infer/sec, latency 21550 usec
 Concurrency: 20, throughput: 831.788 infer/sec, latency 23986 usec
 ```
 
-v7: same as v6, but add the following to the server launch command to check the impact of the intra/inter op thread count:
+### v7: same as v6, but add the following to the server launch command to check the impact of the intra/inter op thread count:
 ```bash
         --backend-config=onnxruntime,intra_op_thread_count=1, --backend-config=onnxruntime,inter_op_thread_count=1 \
 ```
@@ -192,7 +211,7 @@ Concurrency: 14, throughput: 770.603 infer/sec, latency 18111 usec
 Concurrency: 16, throughput: 772.489 infer/sec, latency 20648 usec
 ```
 
-v8: same as v7, but increase the op_thread_count to 2 to check the impact of that:
+### v8: same as v7, but increase the op_thread_count to 2 to check the impact of that:
 ```bash
         --backend-config=onnxruntime,intra_op_thread_count=2, --backend-config=onnxruntime,inter_op_thread_count=2 \
 ```
@@ -210,13 +229,14 @@ Concurrency: 18, throughput: 640.592 infer/sec, latency 28021 usec
 Concurrency: 20, throughput: 637.799 infer/sec, latency 31303 usec
 ```
 
-v9: max-batch-size to 100,
+### v9: max-batch-size to 100,
 ```bash
             --max-batch-size 100 \
 ```
 Not working. The model does not support batching.
 
-v10: 64 model instances, concurrency: 2:128:2, intra_op_thread_count=1, inter_op_thread_count=1, global thread pool = 1. This is to check if we can further increase the throughput by increasing the number of model instances on the same CPU node that has 256 cores.
+### v10:
+64 model instances, concurrency: 2:128:2, intra_op_thread_count=1, inter_op_thread_count=1, global thread pool = 1. This is to check if we can further increase the throughput by increasing the number of model instances on the same CPU node that has 256 cores.
 
 Results:
 ```text
@@ -286,4 +306,5 @@ Concurrency: 126, throughput: 3470.49 infer/sec, latency 36250 usec
 Concurrency: 128, throughput: 3441.74 infer/sec, latency 37149 usec
 ```
 
-v11: same as v10, but run `perf_analyzer` with `--measurement-ms 20000` to check if we can get stable throughput numbers with longer measurement time.
+### v11
+same as v10, but run `perf_analyzer` with `--measurement-ms 20000` to check if we can get stable throughput numbers with longer measurement time.
